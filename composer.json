@@ -16,7 +16,7 @@
         "php": ">=7.1",
         "jms/serializer": "^1.13.0",
         "guzzlehttp/guzzle": "^6.3.3",
-        "symfony/yaml": "^4.1.4",
+        "symfony/yaml": "^4.1.4 || ^5.0",
         "doctrine/cache": "^1.9@dev"
     },
     "require-dev": {
