@@ -51,17 +51,22 @@ class ClientTest extends AbstractTestCase
     {
         $expectedResponse = $this->getTickerStructure();
 
-        $cacheDir = __DIR__.'/../../var/cache/';
-        $client = new Client(
-            $cacheDir,
-            $this->getHttpClientMockWithResponse($expectedResponse)
-        );
+        $cacheDir = sys_get_temp_dir().'/coinpaprika-cache-'.uniqid('', true);
 
-        $ticker = $client->getTickerByCoinId('my-coin');
+        try {
+            $client = new Client(
+                $cacheDir,
+                $this->getHttpClientMockWithResponse($expectedResponse)
+            );
 
-        $this->assertTicker($ticker, $expectedResponse);
+            $ticker = $client->getTickerByCoinId('my-coin');
 
-        $this->assertTrue(file_exists($cacheDir.'metadata/'));
+            $this->assertTicker($ticker, $expectedResponse);
+            $this->assertDirectoryExists($cacheDir);
+            $this->assertNotEmpty(glob($cacheDir.'/**/*'));
+        } finally {
+            $this->removeDirectory($cacheDir);
+        }
     }
 
     public function testTickers(): void
@@ -118,10 +123,6 @@ class ClientTest extends AbstractTestCase
         $this->assertIco($icos[3], $expectedResponse[3]);
     }
 
-    /**
-     * @expectedException \Coinpaprika\Exception\ResponseErrorException
-     * @expectedExceptionMessage id not found
-     */
     public function testErrorResponse(): void
     {
         $expectedResponse = [
@@ -129,24 +130,28 @@ class ClientTest extends AbstractTestCase
         ];
 
         $client = new Client(null, $this->getHttpClientMockWithResponse($expectedResponse, 404));
+
+        $this->expectException(\Coinpaprika\Exception\ResponseErrorException::class);
+        $this->expectExceptionMessage('id not found');
+
         $client->getTickerByCoinId('xxx');
     }
 
-    /**
-     * @expectedException \Coinpaprika\Exception\InvalidResponseException
-     */
     public function testBadResponse(): void
     {
         $client = new Client(null, $this->getHttpClientMockWithResponse([], 444));
+
+        $this->expectException(\Coinpaprika\Exception\InvalidResponseException::class);
+
         $client->getTickerByCoinId('btc-bitcoin');
     }
 
-    /**
-     * @expectedException \Coinpaprika\Exception\RateLimitExceededException
-     */
     public function testRateLimitExceeded(): void
     {
         $client = new Client(null, $this->getHttpClientMockWithResponse([], 429));
+
+        $this->expectException(\Coinpaprika\Exception\RateLimitExceededException::class);
+
         $client->getTickerByCoinId('btc-bitcoin');
     }
 
@@ -200,15 +205,44 @@ class ClientTest extends AbstractTestCase
         $this->assertCount(0, $search->getIcos());
     }
 
-    /**
-     * @expectedException \Coinpaprika\Exception\ResponseErrorException
-     */
     public function testSearchWithLimitError(): void
     {
         $client = new Client(null, $this->getHttpClientMockWithResponse([
             'error' => 'invalid parameters'
         ], 400));
 
+        $this->expectException(\Coinpaprika\Exception\ResponseErrorException::class);
+
         $client->search('t', null, 400);
+    }
+
+    private function removeDirectory(string $directory): void
+    {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $items = scandir($directory);
+
+        if ($items === false) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $path = $directory.'/'.$item;
+
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+                continue;
+            }
+
+            unlink($path);
+        }
+
+        rmdir($directory);
     }
 }

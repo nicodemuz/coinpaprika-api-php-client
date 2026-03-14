@@ -10,6 +10,7 @@ use Coinpaprika\Model\Person;
 use Coinpaprika\Model\Tag;
 use Coinpaprika\Model\Ticker;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Psr7\Utils;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
@@ -287,7 +288,7 @@ abstract class AbstractTestCase extends TestCase
 
         $responseMock
             ->method('getBody')
-            ->willReturn($responseBody)
+            ->willReturn(Utils::streamFor($responseBody))
         ;
 
         $responseMock
@@ -295,14 +296,7 @@ abstract class AbstractTestCase extends TestCase
             ->willReturn($httpCode)
         ;
 
-        $httpClientMock
-            ->method('request')
-            ->withAnyParameters()
-            ->willReturn($responseMock)
-        ;
-
         if ($httpCode >= 400) {
-
             $exception = new ClientException(
                 sprintf('HTTP code: %s', $httpCode),
                 $this->createMock(RequestInterface::class),
@@ -312,6 +306,10 @@ abstract class AbstractTestCase extends TestCase
             $httpClientMock
                 ->method('request')
                 ->willThrowException($exception);
+        } else {
+            $httpClientMock
+                ->method('request')
+                ->willReturn($responseMock);
         }
 
         return $httpClientMock;

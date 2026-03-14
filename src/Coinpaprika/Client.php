@@ -382,7 +382,7 @@ class Client
         // check for errors
         if ($statusCode >= 400 && $statusCode <= 500) {
 
-            if (array_key_exists('error', $e = json_decode($response->getBody(), true))) {
+            if (array_key_exists('error', $e = json_decode((string) $response->getBody(), true))) {
 
                 throw new ResponseErrorException(sprintf(
                     'Response code: %s, error: %s',
@@ -416,6 +416,6 @@ class Client
     {
         $this->validateResponse($response);
 
-        return $this->serializer->deserialize($response->getBody(), $type, 'json');
+        return $this->serializer->deserialize((string) $response->getBody(), $type, 'json');
     }
 }

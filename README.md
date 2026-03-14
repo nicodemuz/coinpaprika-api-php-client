@@ -19,7 +19,7 @@ This library provides convenient way to use [coinpaprika.com API](https://api.co
 
 ## Requirements
 
-* PHP >= 7.1
+* PHP >= 8.2
 * (optional) PHPUnit to run tests.
 
 ## Install
@@ -29,6 +29,8 @@ Via Composer:
 ```bash
 $ composer require coinpaprika/coinpaprika-api-php-client
 ```
+
+This release line supports Symfony components `^5.4`, `^6.0`, and `^7.0`.
 
 ## Getting started
 
